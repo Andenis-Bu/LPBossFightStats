@@ -1,75 +1,127 @@
-﻿using Steamworks;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using Terraria;
+using Terraria.ID;
+using Terraria.ModLoader;
 
 namespace LPBossFightStats
 {
-    public class BossFightManager
+    public class BossFightManager : ModSystem
     {
-        private static readonly BossFightManager instance = new BossFightManager();
-        private List<BossFightStats> activeBossFights = new List<BossFightStats>();
+        private static BossFightStats bossFightStats = new BossFightStats();
 
-        private BossFightManager() { }
+        public static bool activeBossFight = false;
 
-        public static BossFightManager Instance => instance;
-
-        public void AddBossFight(int npcID)
+        public enum PacketType
         {
-            lock (activeBossFights)
-            {
-                BossFightStats bossFight = new BossFightStats(npcID);
-                activeBossFights.Add(bossFight);
-            }
+            BossFightStats,
+            BossFightActive
         }
 
-        public void AddDamage(int npcID, int playerID, int damageDone)
+        #region // Send BossFightManager packets
+        private void SendBossFightStats()
         {
-            lock (activeBossFights)
-            {
-                var bossFight = activeBossFights.FirstOrDefault(bf => bf.NpcID == npcID);
-                if (bossFight == null) return;
+            List<PlayerStats> playerStats = GetPlayerStats();
 
-                var playerStats = bossFight.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
-                if (playerStats != null)
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)PacketManager.PacketType.BossFightManager);
+            packet.Write((byte)PacketType.BossFightStats);
+            packet.Write(playerStats.Count);
+            foreach (PlayerStats player in playerStats)
+            {
+                packet.Write(player.PlayerID);
+                packet.Write(player.TotalDamage);
+                packet.Write(player.TotalDamagePercentage);
+            }
+            packet.Send();
+        }
+
+        private void SendBossFightActive(bool bossFightActive)
+        {
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)PacketManager.PacketType.BossFightManager);
+            packet.Write((byte)PacketType.BossFightActive);
+            packet.Write(bossFightActive);
+            packet.Send();
+        }
+        #endregion
+
+        private bool IsBossFightActive()
+        {
+            // Loop through all NPCs
+            foreach (NPC npc in Main.npc)
+            {
+                // Check if the NPC is a boss and is active
+                if (npc.active && npc.boss)
                 {
-                    playerStats.TotalDamage += damageDone;
+                    return true;
                 }
-                else
+            }
+            return false;
+        }
+
+        public override void PostUpdateEverything()
+        {
+            if (Main.netMode != NetmodeID.Server)
+                return; 
+
+            if (!activeBossFight || IsBossFightActive())
+                return;
+
+            activeBossFight = false;
+
+            SendBossFightActive(false);
+
+            SendBossFightStats();
+        }
+
+        public static void AddDamage(int playerID, int damageDone)
+        {
+            lock (bossFightStats)
+            {
+                bossFightStats.TotalDamage += damageDone;
+
+                var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
+                if (playerStats == null)
                 {
-                    bossFight.EngagedPlayers.Add(new PlayerStats(playerID, damageDone));
+                    playerStats = new PlayerStats(playerID);
+                    bossFightStats.EngagedPlayers.Add(playerStats);
                 }
+
+                playerStats.TotalDamage += damageDone;
             }
         }
 
-        public void RemoveBossFight(int npcID)
+        public static void ResetBossFight()
         {
-            lock (activeBossFights)
+            lock (bossFightStats)
             {
-                var bossFight = activeBossFights.FirstOrDefault(bf => bf.NpcID == npcID);
-                activeBossFights.Remove(bossFight);
+                bossFightStats = new BossFightStats();
             }
         }
 
-        public List<PlayerStats> GetPlayerStats(int npcID)
+        public static List<PlayerStats> GetPlayerStats()
         {
-            lock (activeBossFights)
+            lock (bossFightStats)
             {
-                var bossFight = activeBossFights.FirstOrDefault(bf => bf.NpcID == npcID);
-                return bossFight?.EngagedPlayers.ToList() ?? new List<PlayerStats>();
+                foreach (PlayerStats player in bossFightStats.EngagedPlayers)
+                {
+                    player.TotalDamagePercentage = (player.TotalDamage / bossFightStats.TotalDamage) * 100;
+                }
+
+                return bossFightStats.EngagedPlayers;
             }
         }
     }
 
     public class BossFightStats
     {
-        public int NpcID { get; }
-        public int TotalDamage { get; set; }
+        public double TotalDamage { get; set; }
         public List<PlayerStats> EngagedPlayers { get; }
 
-        public BossFightStats(int npcID, int totalDamage = 0)
+        public BossFightStats()
         {
-            NpcID = npcID;
-            TotalDamage = totalDamage;
+            TotalDamage = 0;
             EngagedPlayers = new List<PlayerStats>();
         }
     }
@@ -78,11 +130,13 @@ namespace LPBossFightStats
     {
         public int PlayerID { get; }
         public int TotalDamage { get; set; }
+        public double TotalDamagePercentage { get; set; }
 
-        public PlayerStats(int playerID, int totalDamage = 0)
+        public PlayerStats(int playerID)
         {
             PlayerID = playerID;
-            TotalDamage = totalDamage;
+            TotalDamage = 0;
+            TotalDamagePercentage = 0;
         }
     }
 }
