@@ -1,52 +1,105 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace LPBossFightStats
+namespace LPBossFightStats.src
 {
     public class BossFightManager : ModSystem
     {
+        // Boss fight statistics instance
         private static BossFightStats bossFightStats = new BossFightStats();
 
-        public static bool activeBossFight = false;
+        // Boss fight active state
+        private static bool isBossFightActive = false;
 
-        public enum PacketType
+        // Property to get/set boss fight active state
+        public static bool IsBossFightActive
+        {
+            get
+            {
+                return isBossFightActive;
+            }
+            set
+            {
+                if (isBossFightActive != value)
+                {
+                    isBossFightActive = value;
+
+                    // Server-specific logic
+                    if (Main.netMode == NetmodeID.Server)
+                    {
+                        ModContent.GetInstance<BossFightManager>().SendBossFightActive(isBossFightActive);
+                        if (value)
+                        {
+                            ResetBossFight();
+                        }
+                        else
+                        {
+                            ModContent.GetInstance<BossFightManager>().SendBossFightStats();
+                        }
+                    }
+                }
+            }
+        }
+
+        #region // Handle BossFightManager sent packets
+
+        // Enum for defining the secondary packet types
+        public enum PacketTypeL2 : byte
         {
             BossFightStats,
             BossFightActive
         }
 
-        #region // Send BossFightManager packets
+        // Sends boss fight statistics to clients
         private void SendBossFightStats()
         {
-            List<PlayerStats> playerStats = GetPlayerStats();
-
-            ModPacket packet = Mod.GetPacket();
-            packet.Write((byte)PacketManager.PacketType.BossFightManager);
-            packet.Write((byte)PacketType.BossFightStats);
-            packet.Write(playerStats.Count);
-            foreach (PlayerStats player in playerStats)
+            try
             {
-                packet.Write(player.PlayerID);
-                packet.Write(player.TotalDamage);
-                packet.Write(player.TotalDamagePercentage);
+                List<PlayerStats> playerStats = GetPlayerStats();
+
+                ModPacket packet = Mod.GetPacket();
+                packet.Write((byte)PacketManager.PacketTypeL1.BossFightManager);
+                packet.Write((byte)PacketTypeL2.BossFightStats);
+                packet.Write(playerStats.Count);
+                foreach (PlayerStats player in playerStats)
+                {
+                    packet.Write(player.PlayerID);
+                    packet.Write(player.DamageDealt);
+                    packet.Write(player.DamagePercent);
+                }
+                packet.Send();
             }
-            packet.Send();
+            catch (Exception ex)
+            {
+                Mod.Logger.Error("Error sending boss fight stats: " + ex.Message);
+            }
         }
 
-        private void SendBossFightActive(bool bossFightActive)
+        // Updates the boss fight active state on clients
+        private void SendBossFightActive(bool isBossFightActive)
         {
-            ModPacket packet = Mod.GetPacket();
-            packet.Write((byte)PacketManager.PacketType.BossFightManager);
-            packet.Write((byte)PacketType.BossFightActive);
-            packet.Write(bossFightActive);
-            packet.Send();
+            try
+            {
+                ModPacket packet = Mod.GetPacket();
+                packet.Write((byte)PacketManager.PacketTypeL1.BossFightManager);
+                packet.Write((byte)PacketTypeL2.BossFightActive);
+                packet.Write(isBossFightActive);
+                packet.Send();
+            }
+            catch (Exception ex)
+            {
+                Mod.Logger.Error("Error updating boss fight active state: " + ex.Message);
+            }
         }
+
         #endregion
 
-        private bool IsBossFightActive()
+        // Checks if any active NPC is a boss
+        private bool CheckBossFightActive()
         {
             // Loop through all NPCs
             foreach (NPC npc in Main.npc)
@@ -60,26 +113,26 @@ namespace LPBossFightStats
             return false;
         }
 
+        // Updates the boss fight state after every game update
         public override void PostUpdateEverything()
         {
             if (Main.netMode != NetmodeID.Server)
-                return; 
+                return; // Only execute on the server
 
-            if (!activeBossFight || IsBossFightActive())
-                return;
+            if (!IsBossFightActive || CheckBossFightActive())
+                return; // No action needed if a boss fight is active or no boss is active
 
-            activeBossFight = false;
-
-            SendBossFightActive(false);
-
-            SendBossFightStats();
+            IsBossFightActive = false; // Deactivate boss fight if no active bosses found
         }
 
+        #region // Handle boss fight stats data
+
+        // Adds damage to the player's statistics
         public static void AddDamage(int playerID, int damageDone)
         {
             lock (bossFightStats)
             {
-                bossFightStats.TotalDamage += damageDone;
+                bossFightStats.TotalDamageDealt += damageDone;
 
                 var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
                 if (playerStats == null)
@@ -88,10 +141,11 @@ namespace LPBossFightStats
                     bossFightStats.EngagedPlayers.Add(playerStats);
                 }
 
-                playerStats.TotalDamage += damageDone;
+                playerStats.DamageDealt += damageDone;
             }
         }
 
+        // Resets the boss fight statistics
         public static void ResetBossFight()
         {
             lock (bossFightStats)
@@ -100,43 +154,55 @@ namespace LPBossFightStats
             }
         }
 
+        // Retrieves player statistics and calculates damage percentage
         public static List<PlayerStats> GetPlayerStats()
         {
             lock (bossFightStats)
             {
                 foreach (PlayerStats player in bossFightStats.EngagedPlayers)
                 {
-                    player.TotalDamagePercentage = (player.TotalDamage / bossFightStats.TotalDamage) * 100;
+                    player.DamagePercent = (player.DamageDealt / bossFightStats.TotalDamageDealt) * 100;
                 }
 
                 return bossFightStats.EngagedPlayers;
             }
         }
-    }
 
-    public class BossFightStats
-    {
-        public double TotalDamage { get; set; }
-        public List<PlayerStats> EngagedPlayers { get; }
+        #endregion
 
-        public BossFightStats()
+        private class BossFightStats
         {
-            TotalDamage = 0;
-            EngagedPlayers = new List<PlayerStats>();
+            // Total damage dealt by all players
+            public double TotalDamageDealt { get; set; }
+
+            // List of engaged players' statistics
+            public List<PlayerStats> EngagedPlayers { get; }
+
+            public BossFightStats()
+            {
+                TotalDamageDealt = 0;
+                EngagedPlayers = new List<PlayerStats>();
+                EngagedPlayers.Add(new PlayerStats(255));
+            }
         }
     }
 
     public class PlayerStats
     {
+        // Player ID
         public int PlayerID { get; }
-        public int TotalDamage { get; set; }
-        public double TotalDamagePercentage { get; set; }
+
+        // Damage dealt by the player
+        public int DamageDealt { get; set; }
+
+        // Damage percentage contribution of the player
+        public double DamagePercent { get; set; }
 
         public PlayerStats(int playerID)
         {
             PlayerID = playerID;
-            TotalDamage = 0;
-            TotalDamagePercentage = 0;
+            DamageDealt = 0;
+            DamagePercent = 0;
         }
     }
 }
