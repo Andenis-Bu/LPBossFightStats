@@ -12,6 +12,7 @@ namespace LPBossFightStats.src
         public enum PacketTypeL1 : byte
         {
             PacketManager,
+            PlayerEventsManager,
             BossEventsManager,
             BossFightManager
         }
@@ -79,6 +80,9 @@ namespace LPBossFightStats.src
                 case PacketTypeL1.PacketManager:
                     HandleServerPacketManagerPacket(reader, whoAmI);
                     break;
+                case PacketTypeL1.PlayerEventsManager:
+                    HandleServerPlayerEventsManagerPacket(reader, whoAmI);
+                    break;
                 case PacketTypeL1.BossEventsManager:
                     HandleServerBossEventsManagerPacket(reader, whoAmI);
                     break;
@@ -107,6 +111,26 @@ namespace LPBossFightStats.src
             }
         }
 
+        // Handles PlayerEventsManager packets on the server side
+        private void HandleServerPlayerEventsManagerPacket(BinaryReader reader, int whoAmI)
+        {
+            try
+            {
+                PlayerEventsManager.PacketTypeL2 packetTypeL2 = (PlayerEventsManager.PacketTypeL2)reader.ReadByte();
+                switch (packetTypeL2)
+                {
+                    case PlayerEventsManager.PacketTypeL2.DamageTaken:
+                        int DamageTaken = reader.ReadInt32();
+                        BossFightManager.AddDamageTaken(whoAmI, DamageTaken);
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.Error("Error handling server PlayerEventsManager packet: " + ex.Message);
+            }
+        }
+
         // Handles BossEventsManager packets on the server side
         private void HandleServerBossEventsManagerPacket(BinaryReader reader, int whoAmI)
         {
@@ -117,7 +141,7 @@ namespace LPBossFightStats.src
                 {
                     case BossEventsManager.PacketTypeL2.DamageDealt:
                         int DamageDealt = reader.ReadInt32();
-                        BossFightManager.AddDamage(whoAmI, DamageDealt);
+                        BossFightManager.AddDamageDealt(whoAmI, DamageDealt);
                         break;
                 }
             }
@@ -138,6 +162,9 @@ namespace LPBossFightStats.src
             {
                 case PacketTypeL1.PacketManager:
                     HandleClientPacketManagerPacket(reader);
+                    break;
+                case PacketTypeL1.PlayerEventsManager:
+                    // Add handling logic if needed
                     break;
                 case PacketTypeL1.BossEventsManager:
                     // Add handling logic if needed
@@ -184,14 +211,17 @@ namespace LPBossFightStats.src
                         {
                             int playerID = reader.ReadInt32();
                             string playerName = playerID == 255 ? "Environment" : Main.player[playerID].name;
-                            int damageDone = reader.ReadInt32();
+                            int damageTaken = reader.ReadInt32();
+                            int hitsTaken = reader.ReadInt32();
+                            int damageDealt = reader.ReadInt32();
+                            int hitsDealt = reader.ReadInt32();
                             double damagePercent = reader.ReadDouble();
 
                             // Display damage stats in the chat
-                            Main.NewText($"{playerName}:");
-                            Main.NewText($"Damage Dealt: {damageDone}");
-                            Main.NewText($"Damage Percent: {damagePercent:0.##}%");
-                            Main.NewText("");
+                            Main.NewText($"____[c/FFE266:{playerName}]____");
+                            Main.NewText($"[c/FFA5A5:Damage Taken:] [c/FF6666:{damageTaken}] [c/FFA5A5:in] [c/FF6666:{hitsTaken}] [c/FFA5A5:hits]");
+                            Main.NewText($"[c/A5E8FF:Damage Dealt:] [c/66D8FF:{damageDealt}] [c/A5E8FF:in] [c/66D8FF:{hitsDealt}] [c/A5E8FF:hits]");
+                            Main.NewText($"[c/F7A5FF:Damage Percent]: [c/F266FF:{damagePercent:0.##}%]");
                         }
                         break;
                 }

@@ -81,7 +81,7 @@ namespace LPBossFightStats.src
             }
             else if (Main.netMode == NetmodeID.Server)
             {
-                BossFightManager.AddDamage(Main.myPlayer, damageDone); // Ensure correct player ID
+                BossFightManager.AddDamageDealt(Main.myPlayer, damageDone); // Ensure correct player ID
             }
         }
     }

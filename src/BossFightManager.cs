@@ -68,7 +68,10 @@ namespace LPBossFightStats.src
                 foreach (PlayerStats player in playerStats)
                 {
                     packet.Write(player.PlayerID);
+                    packet.Write(player.DamageTaken);
+                    packet.Write(player.HitsTaken);
                     packet.Write(player.DamageDealt);
+                    packet.Write(player.HitsDealt);
                     packet.Write(player.DamagePercent);
                 }
                 packet.Send();
@@ -127,12 +130,30 @@ namespace LPBossFightStats.src
 
         #region // Handle boss fight stats data
 
-        // Adds damage to the player's statistics
-        public static void AddDamage(int playerID, int damageDone)
+        // Adds damage taken to the player's statistics
+        public static void AddDamageTaken(int playerID, int damageTaken)
         {
             lock (bossFightStats)
             {
-                bossFightStats.TotalDamageDealt += damageDone;
+                var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
+                if (playerStats == null)
+                {
+                    playerStats = new PlayerStats(playerID);
+                    bossFightStats.EngagedPlayers.Add(playerStats);
+                }
+
+                playerStats.DamageTaken += damageTaken;
+                playerStats.HitsTaken += 1;
+            }
+        }
+
+
+        // Adds damage dealt to the player's statistics
+        public static void AddDamageDealt(int playerID, int damageDealt)
+        {
+            lock (bossFightStats)
+            {
+                bossFightStats.TotalDamageDealt += damageDealt;
 
                 var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
                 if (playerStats == null)
@@ -141,7 +162,8 @@ namespace LPBossFightStats.src
                     bossFightStats.EngagedPlayers.Add(playerStats);
                 }
 
-                playerStats.DamageDealt += damageDone;
+                playerStats.DamageDealt += damageDealt;
+                playerStats.HitsDealt += 1;
             }
         }
 
@@ -168,8 +190,6 @@ namespace LPBossFightStats.src
             }
         }
 
-        #endregion
-
         private class BossFightStats
         {
             // Total damage dealt by all players
@@ -185,6 +205,8 @@ namespace LPBossFightStats.src
                 EngagedPlayers.Add(new PlayerStats(255));
             }
         }
+
+        #endregion
     }
 
     public class PlayerStats
@@ -192,8 +214,17 @@ namespace LPBossFightStats.src
         // Player ID
         public int PlayerID { get; }
 
+        // Damage taken by the player
+        public int DamageTaken { get; set; }
+
+        // Hits taken by the player
+        public int HitsTaken { get; set; }
+
         // Damage dealt by the player
         public int DamageDealt { get; set; }
+
+        // Hits dealt by the player
+        public int HitsDealt { get; set; }
 
         // Damage percentage contribution of the player
         public double DamagePercent { get; set; }
@@ -201,7 +232,10 @@ namespace LPBossFightStats.src
         public PlayerStats(int playerID)
         {
             PlayerID = playerID;
+            DamageTaken = 0;
+            HitsTaken = 0;
             DamageDealt = 0;
+            HitsDealt = 0;
             DamagePercent = 0;
         }
     }
