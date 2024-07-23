@@ -206,11 +206,19 @@ namespace LPBossFightStats.src
                         BossFightManager.IsBossFightActive = reader.ReadBoolean();
                         break;
                     case BossFightManager.PacketTypeL2.BossFightStats:
+                        Main.NewText("[c/fee761:======Bossfight stats======]");
+                        string totalFightDuration = reader.ReadString();
+                        int totalDamageTaken = reader.ReadInt32();
+                        int totalDamageDealt = reader.ReadInt32();
+
+                        Main.NewText($"[c/B55088:Total Fight Duration:] [c/B2116C:{totalFightDuration}]");
+                        Main.NewText($"[c/E28A90:Total Damage Taken:] [c/E43B44:{totalDamageTaken}]");
+                        Main.NewText($"[c/50B3E5:Total Damage Dealt:] [c/0095E9:{totalDamageDealt}]");
+
                         int recordCount = reader.ReadInt32();
                         for (int i = 0; i < recordCount; ++i)
                         {
                             int playerID = reader.ReadInt32();
-                            string playerName = playerID == 255 ? "Environment" : Main.player[playerID].name;
                             int damageTaken = reader.ReadInt32();
                             int hitsTaken = reader.ReadInt32();
                             int damageDealt = reader.ReadInt32();
@@ -218,11 +226,21 @@ namespace LPBossFightStats.src
                             double damagePercent = reader.ReadDouble();
 
                             // Display damage stats in the chat
-                            Main.NewText($"____[c/FFE266:{playerName}]____");
-                            Main.NewText($"[c/FFA5A5:Damage Taken:] [c/FF6666:{damageTaken}] [c/FFA5A5:in] [c/FF6666:{hitsTaken}] [c/FFA5A5:hits]");
-                            Main.NewText($"[c/A5E8FF:Damage Dealt:] [c/66D8FF:{damageDealt}] [c/A5E8FF:in] [c/66D8FF:{hitsDealt}] [c/A5E8FF:hits]");
-                            Main.NewText($"[c/F7A5FF:Damage Percent]: [c/F266FF:{damagePercent:0.##}%]");
+                            if (playerID == 255)
+                            {
+                                Main.NewText($"[c/fee761:____Environment]");
+                                Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{damageDealt}] [c/50B3E5:in] [c/0095E9:{hitsDealt}] [c/50B3E5:hits]");
+                                Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{damagePercent:0.##}%]");
+                            }
+                            else
+                            {
+                                Main.NewText($"[c/fee761:____{Main.player[playerID].name}]");
+                                Main.NewText($"[c/E28A90:Damage Taken:] [c/E43B44:{damageTaken}] [c/E28A90:in] [c/E43B44:{hitsTaken}] [c/E28A90:hits]");
+                                Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{damageDealt}] [c/50B3E5:in] [c/0095E9:{hitsDealt}] [c/50B3E5:hits]");
+                                Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{damagePercent:0.##}%]");
+                            }
                         }
+                        Main.NewText("[c/fee761:======================]");
                         break;
                 }
             }

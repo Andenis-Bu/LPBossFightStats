@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Terraria;
 using Terraria.ID;
@@ -35,9 +36,11 @@ namespace LPBossFightStats.src
                         if (value)
                         {
                             ResetBossFight();
+                            bossFightStats.StartBossFightTimer();
                         }
                         else
                         {
+                            bossFightStats.StopBossFightTimer();
                             ModContent.GetInstance<BossFightManager>().SendBossFightStats();
                         }
                     }
@@ -59,12 +62,17 @@ namespace LPBossFightStats.src
         {
             try
             {
-                List<PlayerStats> playerStats = GetPlayerStats();
-
                 ModPacket packet = Mod.GetPacket();
                 packet.Write((byte)PacketManager.PacketTypeL1.BossFightManager);
                 packet.Write((byte)PacketTypeL2.BossFightStats);
+
+                packet.Write(bossFightStats.TotalFightDuration);
+                packet.Write(bossFightStats.TotalDamageTaken);
+                packet.Write(bossFightStats.TotalDamageDealt);
+
+                List<PlayerStats> playerStats = GetPlayerStats();
                 packet.Write(playerStats.Count);
+
                 foreach (PlayerStats player in playerStats)
                 {
                     packet.Write(player.PlayerID);
@@ -135,6 +143,8 @@ namespace LPBossFightStats.src
         {
             lock (bossFightStats)
             {
+                bossFightStats.TotalDamageTaken += damageTaken;
+
                 var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
                 if (playerStats == null)
                 {
@@ -183,7 +193,7 @@ namespace LPBossFightStats.src
             {
                 foreach (PlayerStats player in bossFightStats.EngagedPlayers)
                 {
-                    player.DamagePercent = (player.DamageDealt / bossFightStats.TotalDamageDealt) * 100;
+                    player.DamagePercent = ((double)player.DamageDealt / bossFightStats.TotalDamageDealt) * 100;
                 }
 
                 return bossFightStats.EngagedPlayers;
@@ -192,17 +202,43 @@ namespace LPBossFightStats.src
 
         private class BossFightStats
         {
+            // Private field to hold the stopwatch instance
+            private Stopwatch totalFightDuration;
+
+            // Public property to get the formatted fight duration
+            public string TotalFightDuration => string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                                              totalFightDuration.Elapsed.Hours,
+                                                              totalFightDuration.Elapsed.Minutes,
+                                                              totalFightDuration.Elapsed.Seconds);
+
+            // Total damage taken by all players
+            public int TotalDamageTaken { get; set; }
+
             // Total damage dealt by all players
-            public double TotalDamageDealt { get; set; }
+            public int TotalDamageDealt { get; set; }
 
             // List of engaged players' statistics
             public List<PlayerStats> EngagedPlayers { get; }
 
             public BossFightStats()
             {
+                totalFightDuration = new Stopwatch();
                 TotalDamageDealt = 0;
+
                 EngagedPlayers = new List<PlayerStats>();
                 EngagedPlayers.Add(new PlayerStats(255));
+            }
+
+            // Method to start the stopwatch
+            public void StartBossFightTimer()
+            {
+                totalFightDuration.Restart();
+            }
+
+            // Method to stop the stopwatch
+            public void StopBossFightTimer()
+            {
+                totalFightDuration.Stop();
             }
         }
 
