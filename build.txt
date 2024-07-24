@@ -1,6 +1,6 @@
 displayName = LP's Boss Fight Stats
 author = LaunchPad
-version = 1.0
+version = 1.1
 homepage = https://github.com/Andenis-Bu/LPBossFightStats
 buildIgnore = .git\*, .vs\*, bin\*, obj\*, *.csproj, *.sln, *.user, *.config, README.md, .gitignore
 includeSource = true

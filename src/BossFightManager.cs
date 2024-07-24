@@ -11,13 +11,19 @@ namespace LPBossFightStats.src
     public class BossFightManager : ModSystem
     {
         // Boss fight statistics instance
-        private static BossFightStats bossFightStats = new BossFightStats();
+        public static BossFightStats BossFightStats { get; set; } = new BossFightStats();
+
+        private static Stopwatch stopwatch = new Stopwatch();
+        private static string Stopwatch => string.Format("{0:D2}:{1:D2}:{2:D2}",
+                                                  stopwatch.Elapsed.Hours,
+                                                  stopwatch.Elapsed.Minutes,
+                                                  stopwatch.Elapsed.Seconds);
 
         // Boss fight active state
         private static bool isBossFightActive = false;
 
         // Property to get/set boss fight active state
-        public static bool IsBossFightActive
+        public static bool IsBossFightActive 
         {
             get
             {
@@ -35,13 +41,29 @@ namespace LPBossFightStats.src
                         ModContent.GetInstance<BossFightManager>().SendBossFightActive(isBossFightActive);
                         if (value)
                         {
+                            stopwatch.Restart();
                             ResetBossFight();
-                            bossFightStats.StartBossFightTimer();
                         }
                         else
                         {
-                            bossFightStats.StopBossFightTimer();
+                            stopwatch.Stop();
+                            BossFightStats.TotalFightDuration = Stopwatch;
                             ModContent.GetInstance<BossFightManager>().SendBossFightStats();
+                        }
+                    }
+                    else if (Main.netMode == NetmodeID.SinglePlayer)
+                    {    
+                        if (value)
+                        {
+                            stopwatch.Restart();
+                            ResetBossFight();
+                        }
+                        else
+                        {
+                            stopwatch.Stop();
+                            BossFightStats.TotalFightDuration = Stopwatch;
+                            GetPlayerStats();
+                            DisplayBossFightStats();
                         }
                     }
                 }
@@ -63,12 +85,13 @@ namespace LPBossFightStats.src
             try
             {
                 ModPacket packet = Mod.GetPacket();
+
                 packet.Write((byte)PacketManager.PacketTypeL1.BossFightManager);
                 packet.Write((byte)PacketTypeL2.BossFightStats);
 
-                packet.Write(bossFightStats.TotalFightDuration);
-                packet.Write(bossFightStats.TotalDamageTaken);
-                packet.Write(bossFightStats.TotalDamageDealt);
+                packet.Write(BossFightStats.TotalFightDuration);
+                packet.Write(BossFightStats.TotalDamageTaken);
+                packet.Write(BossFightStats.TotalDamageDealt);
 
                 List<PlayerStats> playerStats = GetPlayerStats();
                 packet.Write(playerStats.Count);
@@ -127,7 +150,7 @@ namespace LPBossFightStats.src
         // Updates the boss fight state after every game update
         public override void PostUpdateEverything()
         {
-            if (Main.netMode != NetmodeID.Server)
+            if (Main.netMode == NetmodeID.MultiplayerClient)
                 return; // Only execute on the server
 
             if (!IsBossFightActive || CheckBossFightActive())
@@ -138,18 +161,44 @@ namespace LPBossFightStats.src
 
         #region // Handle boss fight stats data
 
+        public static void DisplayBossFightStats()
+        {
+            Main.NewText("[c/fee761:======Bossfight stats======]");
+            Main.NewText($"[c/B55088:Total Fight Duration:] [c/B2116C:{BossFightStats.TotalFightDuration}]");
+            Main.NewText($"[c/E28A90:Total Damage Taken:] [c/E43B44:{BossFightStats.TotalDamageTaken}]");
+            Main.NewText($"[c/50B3E5:Total Damage Dealt:] [c/0095E9:{BossFightStats.TotalDamageDealt}]");
+
+            foreach(PlayerStats player in BossFightStats.EngagedPlayers)
+            {
+                if (player.PlayerID == 255)
+                {
+                    Main.NewText($"[c/fee761:____Environment]");
+                    Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{player.DamageDealt}] [c/50B3E5:in] [c/0095E9:{player.HitsDealt}] [c/50B3E5:hits]");
+                    Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{player.DamagePercent:0.##}%]");
+                }
+                else
+                {
+                    Main.NewText($"[c/fee761:____{Main.player[player.PlayerID].name}]");
+                    Main.NewText($"[c/E28A90:Damage Taken:] [c/E43B44:{player.DamageTaken}] [c/E28A90:in] [c/E43B44:{player.HitsTaken}] [c/E28A90:hits]");
+                    Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{player.DamageDealt}] [c/50B3E5:in] [c/0095E9:{player.HitsDealt}] [c/50B3E5:hits]");
+                    Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{player.DamagePercent:0.##}%]");
+                }
+            }
+            Main.NewText("[c/fee761:======================]");
+        }
+
         // Adds damage taken to the player's statistics
         public static void AddDamageTaken(int playerID, int damageTaken)
         {
-            lock (bossFightStats)
+            lock (BossFightStats)
             {
-                bossFightStats.TotalDamageTaken += damageTaken;
+                BossFightStats.TotalDamageTaken += damageTaken;
 
-                var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
+                var playerStats = BossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
                 if (playerStats == null)
                 {
                     playerStats = new PlayerStats(playerID);
-                    bossFightStats.EngagedPlayers.Add(playerStats);
+                    BossFightStats.EngagedPlayers.Add(playerStats);
                 }
 
                 playerStats.DamageTaken += damageTaken;
@@ -157,19 +206,18 @@ namespace LPBossFightStats.src
             }
         }
 
-
         // Adds damage dealt to the player's statistics
         public static void AddDamageDealt(int playerID, int damageDealt)
         {
-            lock (bossFightStats)
+            lock (BossFightStats)
             {
-                bossFightStats.TotalDamageDealt += damageDealt;
+                BossFightStats.TotalDamageDealt += damageDealt;
 
-                var playerStats = bossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
+                var playerStats = BossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
                 if (playerStats == null)
                 {
                     playerStats = new PlayerStats(playerID);
-                    bossFightStats.EngagedPlayers.Add(playerStats);
+                    BossFightStats.EngagedPlayers.Add(playerStats);
                 }
 
                 playerStats.DamageDealt += damageDealt;
@@ -180,69 +228,55 @@ namespace LPBossFightStats.src
         // Resets the boss fight statistics
         public static void ResetBossFight()
         {
-            lock (bossFightStats)
+            lock (BossFightStats)
             {
-                bossFightStats = new BossFightStats();
+                BossFightStats = new BossFightStats();
             }
         }
 
         // Retrieves player statistics and calculates damage percentage
         public static List<PlayerStats> GetPlayerStats()
         {
-            lock (bossFightStats)
+            lock (BossFightStats)
             {
-                foreach (PlayerStats player in bossFightStats.EngagedPlayers)
+                foreach (PlayerStats player in BossFightStats.EngagedPlayers)
                 {
-                    player.DamagePercent = ((double)player.DamageDealt / bossFightStats.TotalDamageDealt) * 100;
+                    player.DamagePercent = ((double)player.DamageDealt / BossFightStats.TotalDamageDealt) * 100;
                 }
 
-                return bossFightStats.EngagedPlayers;
-            }
-        }
-
-        private class BossFightStats
-        {
-            // Private field to hold the stopwatch instance
-            private Stopwatch totalFightDuration;
-
-            // Public property to get the formatted fight duration
-            public string TotalFightDuration => string.Format("{0:D2}:{1:D2}:{2:D2}",
-                                                              totalFightDuration.Elapsed.Hours,
-                                                              totalFightDuration.Elapsed.Minutes,
-                                                              totalFightDuration.Elapsed.Seconds);
-
-            // Total damage taken by all players
-            public int TotalDamageTaken { get; set; }
-
-            // Total damage dealt by all players
-            public int TotalDamageDealt { get; set; }
-
-            // List of engaged players' statistics
-            public List<PlayerStats> EngagedPlayers { get; }
-
-            public BossFightStats()
-            {
-                totalFightDuration = new Stopwatch();
-                TotalDamageDealt = 0;
-
-                EngagedPlayers = new List<PlayerStats>();
-                EngagedPlayers.Add(new PlayerStats(255));
-            }
-
-            // Method to start the stopwatch
-            public void StartBossFightTimer()
-            {
-                totalFightDuration.Restart();
-            }
-
-            // Method to stop the stopwatch
-            public void StopBossFightTimer()
-            {
-                totalFightDuration.Stop();
+                return BossFightStats.EngagedPlayers;
             }
         }
 
         #endregion
+    }
+
+    public class BossFightStats
+    {
+        // Private field to hold the stopwatch instance
+        public string TotalFightDuration { get; set; }
+
+        // Total damage taken by all players
+        public int TotalDamageTaken { get; set; }
+
+        // Total damage dealt by all players
+        public int TotalDamageDealt { get; set; }
+
+        // List of engaged players' statistics
+        public List<PlayerStats> EngagedPlayers { get; }
+
+        public BossFightStats()
+        {
+            TotalFightDuration = "00:00:00";
+            TotalDamageDealt = 0;
+
+            EngagedPlayers = new List<PlayerStats>();
+
+            if (Main.netMode != NetmodeID.MultiplayerClient)
+            {
+                EngagedPlayers.Add(new PlayerStats(255));
+            }     
+        }
     }
 
     public class PlayerStats

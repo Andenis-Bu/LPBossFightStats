@@ -13,7 +13,6 @@ namespace LPBossFightStats.src
         {
             PacketManager,
             PlayerEventsManager,
-            BossEventsManager,
             BossFightManager
         }
 
@@ -83,9 +82,6 @@ namespace LPBossFightStats.src
                 case PacketTypeL1.PlayerEventsManager:
                     HandleServerPlayerEventsManagerPacket(reader, whoAmI);
                     break;
-                case PacketTypeL1.BossEventsManager:
-                    HandleServerBossEventsManagerPacket(reader, whoAmI);
-                    break;
                 case PacketTypeL1.BossFightManager:
                     // Add handling logic if needed
                     break;
@@ -123,23 +119,7 @@ namespace LPBossFightStats.src
                         int DamageTaken = reader.ReadInt32();
                         BossFightManager.AddDamageTaken(whoAmI, DamageTaken);
                         break;
-                }
-            }
-            catch (Exception ex)
-            {
-                Logger.Error("Error handling server PlayerEventsManager packet: " + ex.Message);
-            }
-        }
-
-        // Handles BossEventsManager packets on the server side
-        private void HandleServerBossEventsManagerPacket(BinaryReader reader, int whoAmI)
-        {
-            try
-            {
-                BossEventsManager.PacketTypeL2 packetTypeL2 = (BossEventsManager.PacketTypeL2)reader.ReadByte();
-                switch (packetTypeL2)
-                {
-                    case BossEventsManager.PacketTypeL2.DamageDealt:
+                    case PlayerEventsManager.PacketTypeL2.DamageDealt:
                         int DamageDealt = reader.ReadInt32();
                         BossFightManager.AddDamageDealt(whoAmI, DamageDealt);
                         break;
@@ -147,7 +127,7 @@ namespace LPBossFightStats.src
             }
             catch (Exception ex)
             {
-                Logger.Error("Error handling server BossEventsManager packet: " + ex.Message);
+                Logger.Error("Error handling server PlayerEventsManager packet: " + ex.Message);
             }
         }
 
@@ -164,9 +144,6 @@ namespace LPBossFightStats.src
                     HandleClientPacketManagerPacket(reader);
                     break;
                 case PacketTypeL1.PlayerEventsManager:
-                    // Add handling logic if needed
-                    break;
-                case PacketTypeL1.BossEventsManager:
                     // Add handling logic if needed
                     break;
                 case PacketTypeL1.BossFightManager:
@@ -206,14 +183,15 @@ namespace LPBossFightStats.src
                         BossFightManager.IsBossFightActive = reader.ReadBoolean();
                         break;
                     case BossFightManager.PacketTypeL2.BossFightStats:
-                        Main.NewText("[c/fee761:======Bossfight stats======]");
                         string totalFightDuration = reader.ReadString();
                         int totalDamageTaken = reader.ReadInt32();
                         int totalDamageDealt = reader.ReadInt32();
 
-                        Main.NewText($"[c/B55088:Total Fight Duration:] [c/B2116C:{totalFightDuration}]");
-                        Main.NewText($"[c/E28A90:Total Damage Taken:] [c/E43B44:{totalDamageTaken}]");
-                        Main.NewText($"[c/50B3E5:Total Damage Dealt:] [c/0095E9:{totalDamageDealt}]");
+                        BossFightStats bossFightStats = new BossFightStats();
+
+                        bossFightStats.TotalFightDuration = totalFightDuration;
+                        bossFightStats.TotalDamageTaken = totalDamageTaken;
+                        bossFightStats.TotalDamageDealt = totalDamageDealt;
 
                         int recordCount = reader.ReadInt32();
                         for (int i = 0; i < recordCount; ++i)
@@ -225,22 +203,20 @@ namespace LPBossFightStats.src
                             int hitsDealt = reader.ReadInt32();
                             double damagePercent = reader.ReadDouble();
 
-                            // Display damage stats in the chat
-                            if (playerID == 255)
-                            {
-                                Main.NewText($"[c/fee761:____Environment]");
-                                Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{damageDealt}] [c/50B3E5:in] [c/0095E9:{hitsDealt}] [c/50B3E5:hits]");
-                                Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{damagePercent:0.##}%]");
-                            }
-                            else
-                            {
-                                Main.NewText($"[c/fee761:____{Main.player[playerID].name}]");
-                                Main.NewText($"[c/E28A90:Damage Taken:] [c/E43B44:{damageTaken}] [c/E28A90:in] [c/E43B44:{hitsTaken}] [c/E28A90:hits]");
-                                Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{damageDealt}] [c/50B3E5:in] [c/0095E9:{hitsDealt}] [c/50B3E5:hits]");
-                                Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{damagePercent:0.##}%]");
-                            }
+                            PlayerStats player = new PlayerStats(playerID);
+
+                            player.DamageTaken = damageTaken;
+                            player.HitsTaken = hitsTaken;
+                            player.DamageDealt = damageDealt;
+                            player.HitsDealt = hitsDealt;
+                            player.DamagePercent = damagePercent;
+                            
+
+                            bossFightStats.EngagedPlayers.Add(player);
                         }
-                        Main.NewText("[c/fee761:======================]");
+
+                        BossFightManager.BossFightStats = bossFightStats;
+                        BossFightManager.DisplayBossFightStats();
                         break;
                 }
             }
