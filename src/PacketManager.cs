@@ -115,6 +115,9 @@ namespace LPBossFightStats.src
                 PlayerEventsManager.PacketTypeL2 packetTypeL2 = (PlayerEventsManager.PacketTypeL2)reader.ReadByte();
                 switch (packetTypeL2)
                 {
+                    case PlayerEventsManager.PacketTypeL2.DeathReport:
+                        BossFightManager.AddDeathReport(whoAmI);
+                        break;
                     case PlayerEventsManager.PacketTypeL2.DamageTaken:
                         int DamageTaken = reader.ReadInt32();
                         BossFightManager.AddDamageTaken(whoAmI, DamageTaken);
@@ -183,34 +186,25 @@ namespace LPBossFightStats.src
                         BossFightManager.IsBossFightActive = reader.ReadBoolean();
                         break;
                     case BossFightManager.PacketTypeL2.BossFightStats:
-                        string totalFightDuration = reader.ReadString();
-                        int totalDamageTaken = reader.ReadInt32();
-                        int totalDamageDealt = reader.ReadInt32();
-
                         BossFightStats bossFightStats = new BossFightStats();
 
-                        bossFightStats.TotalFightDuration = totalFightDuration;
-                        bossFightStats.TotalDamageTaken = totalDamageTaken;
-                        bossFightStats.TotalDamageDealt = totalDamageDealt;
+                        bossFightStats.TotalFightDuration = reader.ReadString();
+                        bossFightStats.TotalDeathCount = reader.ReadInt32();
+                        bossFightStats.TotalDamageTaken = reader.ReadInt32();
+                        bossFightStats.TotalKillCount = reader.ReadInt32();
+                        bossFightStats.TotalDamageDealt = reader.ReadInt32();
 
                         int recordCount = reader.ReadInt32();
                         for (int i = 0; i < recordCount; ++i)
                         {
-                            int playerID = reader.ReadInt32();
-                            int damageTaken = reader.ReadInt32();
-                            int hitsTaken = reader.ReadInt32();
-                            int damageDealt = reader.ReadInt32();
-                            int hitsDealt = reader.ReadInt32();
-                            double damagePercent = reader.ReadDouble();
+                            PlayerStats player = new PlayerStats(reader.ReadInt32());
 
-                            PlayerStats player = new PlayerStats(playerID);
-
-                            player.DamageTaken = damageTaken;
-                            player.HitsTaken = hitsTaken;
-                            player.DamageDealt = damageDealt;
-                            player.HitsDealt = hitsDealt;
-                            player.DamagePercent = damagePercent;
-                            
+                            player.DeathCount = reader.ReadInt32();
+                            player.DamageTaken = reader.ReadInt32();
+                            player.HitsTaken = reader.ReadInt32();
+                            player.DamageDealt = reader.ReadInt32();
+                            player.HitsDealt = reader.ReadInt32();
+                            player.DamagePercent = reader.ReadDouble();
 
                             bossFightStats.EngagedPlayers.Add(player);
                         }

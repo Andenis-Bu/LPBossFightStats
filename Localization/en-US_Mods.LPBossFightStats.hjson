@@ -1,1 +1,70 @@
+Configs: {
+	ModConfigs: {
+		DisplayName: Mod Configs
 
+		ShowFightDuration: {
+			Label: Show Fight Duration
+			Tooltip: ""
+		}
+
+		FightDurationTextColor: {
+			Label: Fight Duration Text Color
+			Tooltip: ""
+		}
+
+		ShowDamageTaken: {
+			Label: Show Damage Taken
+			Tooltip: ""
+		}
+
+		DamageTakenTextColor: {
+			Label: Damage Taken Text Color
+			Tooltip: ""
+		}
+
+		ShowDamageDealt: {
+			Label: Show Damage Dealt
+			Tooltip: ""
+		}
+
+		DamageDealtTextColor: {
+			Label: Damage Dealt Text Color
+			Tooltip: ""
+		}
+
+		ShowDamagePercent: {
+			Label: Show Damage Percent
+			Tooltip: ""
+		}
+
+		DamagePercentTextColor: {
+			Label: Damage Percent Text Color
+			Tooltip: ""
+		}
+
+		ShowDeathCount: {
+			Label: Show Death Count
+			Tooltip: ""
+		}
+
+		ShowDeathCountTextColor: {
+			Label: Show Death Count Text Color
+			Tooltip: ""
+		}
+
+		DeathCountTextColor: {
+			Label: Death Count Text Color
+			Tooltip: ""
+		}
+
+		KillCountTextColor: {
+			Tooltip: ""
+			Label: Kill Count Text Color
+		}
+
+		ShowKillCount: {
+			Label: Show Kill Count
+			Tooltip: ""
+		}
+	}
+}

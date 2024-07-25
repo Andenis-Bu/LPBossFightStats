@@ -1,24 +1,24 @@
-[img]https://i.imgur.com/fSNjidx.gif[/img]
-
-[h1]LP's Boss Fight Stats[/h1]
+[img]https://i.imgur.com/j6tgASI.png[/img]
 [b]LP's Boss Fight Stats[/b] is a mod for Terraria that enhances the boss fight experience by tracking and displaying various statistics after the battle. Whether you're playing solo or with friends, this mod provides detailed summaries of performance, helping you to improve your strategies and enjoy a more competitive and fun gameplay experience.
 
-[h2]What's New in 1.1[/h2]
+[h2]What's New in 1.2[/h2]
 [list]
-[*][b]Single-Player Support:[/b] Full support for single-player stats tracking is now available.
-[*][b]Improved Damage Tracking:[/b] Minor improvements have been made to the accuracy and detail of damage tracking.
+[*][b]Client-Side Configurations:[/b] Gain more control over your gameplay data with new settings that allow you to toggle individual statistics on and off. Customize the color of your stats for a personalized interface.
+[img]https://i.imgur.com/oRF5LeY.gif[/img]
+[*][b]Kill Count:[/b] A new feature that tracks the total number of enemies killed during boss fights.
+[*][b]Death Count:[/b] Keep a detailed record of each player's number of deaths in boss fights, allowing for better strategy adjustments and performance analysis.
 [/list]
 
 [h2]How It Works[/h2]
 [list]
 [*][b]Bossfight Tracking:[/b] The mod tracks damage from the start of a boss fight until no bosses are left. Detailed stats are then displayed in chat. Use the up and down arrow keys to scroll through the chat history.
-[img]https://i.imgur.com/41fMdHA.gif[/img]
-[*][b]General Statistics:[/b] Displays overall fight data including duration, total damage taken, and total damage dealt.
-[img]https://i.imgur.com/opjNuuC.png[/img]
+[img]https://i.imgur.com/U7FSzvg.gif[/img]
+[*][b]General Statistics:[/b] Displays overall fight data including total duration, death count, damage taken, kill count and damage dealt.
+[img]https://i.imgur.com/yRqHSyO.png[/img]
 [*][b]Environment Statistics:[/b] Displays the damage dealt by town NPCs and traps during the fight.
-[img]https://i.imgur.com/xbS9HLj.png[/img]
-[*][b]Player Statistics:[/b] Shows individual player performance metrics including damage taken, hits taken, damage dealt, hits dealt, and damage percentage.
-[img]https://i.imgur.com/Jmqy1cx.png[/img]
+[img]https://i.imgur.com/jjlN47g.png[/img]
+[*][b]Player Statistics:[/b] Shows individual player performance metrics including death count, damage taken, hits taken, damage dealt, hits dealt, and damage percentage.
+[img]https://i.imgur.com/DZp1q0d.png[/img]
 [/list]
 
 [h2]Compatibility[/h2]
@@ -27,5 +27,8 @@ LP's Boss Fight Stats is compatible with most other mods. If you encounter any i
 [h2]Feedback and Support[/h2]
 If you have any feedback or need support, feel free to leave a comment or start a discussion on the Steam Workshop page. Your input is valuable and helps improve the mod.
 
-[h2]Source Code[/h2]
+[h2]Links[/h2]
 The source code for LP's Boss Fight Stats is available on [url=https://github.com/Andenis-Bu/LPBossFightStats]GitHub[/url].
+If you like LP's Boss Fight Stats, check out [url=https://steamcommunity.com/workshop/filedetails/?id=3295303826]my other mods[/url].
+
+[img]https://i.imgur.com/fSNjidx.gif[/img]

@@ -1,5 +1,6 @@
 ﻿using System;
 using Terraria;
+using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 
@@ -10,13 +11,30 @@ namespace LPBossFightStats.src
         // Enum for defining the secondary packet types
         public enum PacketTypeL2 : byte
         {
+            DeathReport,
             DamageTaken,
             DamageDealt
         }
 
         #region // Send BossEventsManager packets
 
-        // Sends damage taken information to clients
+        // Sends death report information to server
+        private void SendDamageTaken()
+        {
+            try
+            {
+                ModPacket packet = Mod.GetPacket();
+                packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
+                packet.Write((byte)PacketTypeL2.DeathReport);
+                packet.Send();
+            }
+            catch (Exception ex)
+            {
+                Mod.Logger.Error("Error sending death report packet: " + ex.Message);
+            }
+        }
+
+        // Sends damage taken information to server
         private void SendDamageTaken(int damageTaken)
         {
             try
@@ -33,7 +51,7 @@ namespace LPBossFightStats.src
             }
         }
 
-        // Sends damage dealt information to clients
+        // Sends damage dealt information to server
         private void SendDamageDealt(int damageDealt)
         {
             try
@@ -51,10 +69,25 @@ namespace LPBossFightStats.src
         }
         #endregion
 
+        public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
+        {
+            if (!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
+                return;
+
+            if (Main.netMode == NetmodeID.MultiplayerClient)
+            {
+                SendDamageTaken();
+            }
+            else if (Main.netMode == NetmodeID.SinglePlayer)
+            {
+                BossFightManager.AddDeathReport(Main.myPlayer);
+            }
+        }
+
         // Triggered when a Player takes damage
         public override void OnHurt(Player.HurtInfo info)
         {
-            if(!BossFightManager.IsBossFightActive)
+            if(!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
                 return;
 
             if (Main.netMode == NetmodeID.MultiplayerClient)
@@ -70,7 +103,7 @@ namespace LPBossFightStats.src
         // Triggered when a Player deals damage
         public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone)
         {
-            if (!BossFightManager.IsBossFightActive)
+            if (!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
                 return;
 
             if (Main.netMode == NetmodeID.MultiplayerClient)

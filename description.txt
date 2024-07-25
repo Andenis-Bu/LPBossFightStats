@@ -1,15 +1,16 @@
 [c/ff9eb4:LP's Boss Fight Stats]
 LP's Boss Fight Stats is a mod for Terraria that enhances the boss fight experience by tracking and displaying various statistics after the battle. Whether you're playing solo or with friends, this mod provides detailed summaries of performance, helping you to improve your strategies and enjoy a more competitive and fun gameplay experience.
 
-[c/ff9eb4:What's New in 1.1]
-• [c/f5ffc7:Single-Player Support:] Full support for single-player stats tracking is now available.
-• [c/f5ffc7:Improved Damage Tracking:] Minor improvements have been made to the accuracy and detail of damage tracking.
+[c/ff9eb4:What's New in 1.2]
+• [c/f5ffc7:Client-Side Configurations:] Gain more control over your gameplay data with new settings that allow you to toggle individual statistics on and off. Customize the color of your stats for a personalized interface.
+• [c/f5ffc7:Kill Count:] A new feature that tracks the total number of enemies killed during boss fights.
+• [c/f5ffc7:Death Count:] Keep a detailed record of each player's number of deaths in boss fights, allowing for better strategy adjustments and performance analysis.
 
 [c/ff9eb4:How It Works]
 • [c/f5ffc7:Bossfight Tracking:] The mod tracks damage from the start of a boss fight until no bosses are left. Detailed stats are then displayed in chat. Use the up and down arrow keys to scroll through the chat history.
-• [c/f5ffc7:General Statistics:] Displays overall fight data including duration, total damage taken, and total damage dealt.
+• [c/f5ffc7:General Statistics:] Displays overall fight data including total duration, death count, damage taken, kill count and damage dealt.
 • [c/f5ffc7:Environment Statistics:] Displays the damage dealt by town NPCs and traps during the fight.
-• [c/f5ffc7:Player Statistics:] Shows individual player performance metrics including damage taken, hits taken, damage dealt, hits dealt, and damage percentage.
+• [c/f5ffc7:Player Statistics:] Shows individual player performance metrics including death count, damage taken, hits taken, damage dealt, hits dealt, and damage percentage.
 
 [c/ff9eb4:Compatibility]
 LP's Boss Fight Stats is compatible with most other mods. If you encounter any issues, please report them on the GitHub issues page.

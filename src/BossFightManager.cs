@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Xna.Framework;
 using System.Diagnostics;
 using System.Linq;
 using Terraria;
 using Terraria.ID;
 using Terraria.ModLoader;
+using LPBossFightStats.src.UIElements;
 
 namespace LPBossFightStats.src
 {
@@ -90,7 +92,9 @@ namespace LPBossFightStats.src
                 packet.Write((byte)PacketTypeL2.BossFightStats);
 
                 packet.Write(BossFightStats.TotalFightDuration);
+                packet.Write(BossFightStats.TotalDeathCount);
                 packet.Write(BossFightStats.TotalDamageTaken);
+                packet.Write(BossFightStats.TotalKillCount);
                 packet.Write(BossFightStats.TotalDamageDealt);
 
                 List<PlayerStats> playerStats = GetPlayerStats();
@@ -99,6 +103,7 @@ namespace LPBossFightStats.src
                 foreach (PlayerStats player in playerStats)
                 {
                     packet.Write(player.PlayerID);
+                    packet.Write(player.DeathCount);
                     packet.Write(player.DamageTaken);
                     packet.Write(player.HitsTaken);
                     packet.Write(player.DamageDealt);
@@ -160,31 +165,28 @@ namespace LPBossFightStats.src
         }
 
         #region // Handle boss fight stats data
-
+        // Display boss fight stats
         public static void DisplayBossFightStats()
         {
-            Main.NewText("[c/fee761:======Bossfight stats======]");
-            Main.NewText($"[c/B55088:Total Fight Duration:] [c/B2116C:{BossFightStats.TotalFightDuration}]");
-            Main.NewText($"[c/E28A90:Total Damage Taken:] [c/E43B44:{BossFightStats.TotalDamageTaken}]");
-            Main.NewText($"[c/50B3E5:Total Damage Dealt:] [c/0095E9:{BossFightStats.TotalDamageDealt}]");
+            StatsVizualiser.DisplayStats(BossFightStats);
+        }
 
-            foreach(PlayerStats player in BossFightStats.EngagedPlayers)
+        // Adds death report to the player's statistics
+        public static void AddDeathReport(int playerID)
+        {
+            lock (BossFightStats)
             {
-                if (player.PlayerID == 255)
+                BossFightStats.TotalDeathCount += 1;
+
+                var playerStats = BossFightStats.EngagedPlayers.FirstOrDefault(ps => ps.PlayerID == playerID);
+                if (playerStats == null)
                 {
-                    Main.NewText($"[c/fee761:____Environment]");
-                    Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{player.DamageDealt}] [c/50B3E5:in] [c/0095E9:{player.HitsDealt}] [c/50B3E5:hits]");
-                    Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{player.DamagePercent:0.##}%]");
+                    playerStats = new PlayerStats(playerID);
+                    BossFightStats.EngagedPlayers.Add(playerStats);
                 }
-                else
-                {
-                    Main.NewText($"[c/fee761:____{Main.player[player.PlayerID].name}]");
-                    Main.NewText($"[c/E28A90:Damage Taken:] [c/E43B44:{player.DamageTaken}] [c/E28A90:in] [c/E43B44:{player.HitsTaken}] [c/E28A90:hits]");
-                    Main.NewText($"[c/50B3E5:Damage Dealt:] [c/0095E9:{player.DamageDealt}] [c/50B3E5:in] [c/0095E9:{player.HitsDealt}] [c/50B3E5:hits]");
-                    Main.NewText($"[c/3E8948:Damage Percent]: [c/0E871E:{player.DamagePercent:0.##}%]");
-                }
+
+                playerStats.DeathCount += 1;
             }
-            Main.NewText("[c/fee761:======================]");
         }
 
         // Adds damage taken to the player's statistics
@@ -203,6 +205,15 @@ namespace LPBossFightStats.src
 
                 playerStats.DamageTaken += damageTaken;
                 playerStats.HitsTaken += 1;
+            }
+        }
+
+        // Adds death report to the player's statistics
+        public static void AddKillReport()
+        {
+            lock (BossFightStats)
+            {
+                BossFightStats.TotalKillCount += 1;
             }
         }
 
@@ -256,8 +267,14 @@ namespace LPBossFightStats.src
         // Private field to hold the stopwatch instance
         public string TotalFightDuration { get; set; }
 
+        // Total death count by all players
+        public int TotalDeathCount { get; set; }
+
         // Total damage taken by all players
         public int TotalDamageTaken { get; set; }
+
+        // Total kill count by all players
+        public int TotalKillCount { get; set; }
 
         // Total damage dealt by all players
         public int TotalDamageDealt { get; set; }
@@ -268,6 +285,9 @@ namespace LPBossFightStats.src
         public BossFightStats()
         {
             TotalFightDuration = "00:00:00";
+            TotalDeathCount = 0;
+            TotalDamageTaken = 0;
+            TotalKillCount = 0;
             TotalDamageDealt = 0;
 
             EngagedPlayers = new List<PlayerStats>();
@@ -283,6 +303,9 @@ namespace LPBossFightStats.src
     {
         // Player ID
         public int PlayerID { get; }
+
+        // Death count by the player
+        public int DeathCount { get; set; }
 
         // Damage taken by the player
         public int DamageTaken { get; set; }
@@ -302,6 +325,7 @@ namespace LPBossFightStats.src
         public PlayerStats(int playerID)
         {
             PlayerID = playerID;
+            DeathCount = 0;
             DamageTaken = 0;
             HitsTaken = 0;
             DamageDealt = 0;
