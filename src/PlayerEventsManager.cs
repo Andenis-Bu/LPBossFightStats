@@ -6,7 +6,7 @@ using Terraria.ModLoader;
 
 namespace LPBossFightStats.src
 {
-    internal class PlayerEventsManager : ModPlayer
+    public class PlayerEventsManager : ModPlayer
     {
         // Enum for defining the secondary packet types
         public enum PacketTypeL2 : byte

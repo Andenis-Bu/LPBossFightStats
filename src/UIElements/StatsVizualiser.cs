@@ -4,7 +4,7 @@ using Microsoft.Xna.Framework;
 
 namespace LPBossFightStats.src.UIElements
 {
-    internal class StatsVizualiser
+    public class StatsVizualiser
     {
         public static void DisplayStats(BossFightStats bossFightStats)
         {

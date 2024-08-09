@@ -37,33 +37,26 @@ namespace LPBossFightStats.src
                 {
                     isBossFightActive = value;
 
-                    // Server-specific logic
-                    if (Main.netMode == NetmodeID.Server)
+                    if (Main.netMode == NetmodeID.MultiplayerClient)
+                        return; // Exit if client
+
+                    if (value)
                     {
-                        ModContent.GetInstance<BossFightManager>().SendBossFightActive(isBossFightActive);
-                        if (value)
+                        stopwatch.Restart();
+                        ResetBossFight();
+                    }
+                    else
+                    {
+                        stopwatch.Stop();
+                        BossFightStats.TotalFightDuration = Stopwatch;
+
+                        if (Main.netMode == NetmodeID.Server)
                         {
-                            stopwatch.Restart();
-                            ResetBossFight();
-                        }
-                        else
-                        {
-                            stopwatch.Stop();
-                            BossFightStats.TotalFightDuration = Stopwatch;
+                            ModContent.GetInstance<BossFightManager>().SendBossFightActive();
                             ModContent.GetInstance<BossFightManager>().SendBossFightStats();
                         }
-                    }
-                    else if (Main.netMode == NetmodeID.SinglePlayer)
-                    {    
-                        if (value)
+                        else if(Main.netMode == NetmodeID.SinglePlayer)
                         {
-                            stopwatch.Restart();
-                            ResetBossFight();
-                        }
-                        else
-                        {
-                            stopwatch.Stop();
-                            BossFightStats.TotalFightDuration = Stopwatch;
                             GetPlayerStats();
                             DisplayBossFightStats();
                         }
@@ -119,14 +112,14 @@ namespace LPBossFightStats.src
         }
 
         // Updates the boss fight active state on clients
-        private void SendBossFightActive(bool isBossFightActive)
+        private void SendBossFightActive()
         {
             try
             {
                 ModPacket packet = Mod.GetPacket();
                 packet.Write((byte)PacketManager.PacketTypeL1.BossFightManager);
                 packet.Write((byte)PacketTypeL2.BossFightActive);
-                packet.Write(isBossFightActive);
+                packet.Write(IsBossFightActive);
                 packet.Send();
             }
             catch (Exception ex)
@@ -137,31 +130,26 @@ namespace LPBossFightStats.src
 
         #endregion
 
-        // Checks if any active NPC is a boss
-        private bool CheckBossFightActive()
-        {
-            // Loop through all NPCs
-            foreach (NPC npc in Main.npc)
-            {
-                // Check if the NPC is a boss and is active
-                if (npc.active && npc.boss)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
         // Updates the boss fight state after every game update
         public override void PostUpdateEverything()
         {
             if (Main.netMode == NetmodeID.MultiplayerClient)
-                return; // Only execute on the server
+                return; // Exit if client
 
-            if (!IsBossFightActive || CheckBossFightActive())
-                return; // No action needed if a boss fight is active or no boss is active
+            if (IsBossFightActive)
+            {
+                // Checks if any active NPC is a boss
+                foreach (NPC npc in Main.npc)
+                {
+                    // Check if the NPC is a boss and is active
+                    if (npc.active && npc.boss)
+                    {
+                        return;
+                    }
+                }
 
-            IsBossFightActive = false; // Deactivate boss fight if no active bosses found
+                IsBossFightActive = false;
+            }
         }
 
         #region // Handle boss fight stats data

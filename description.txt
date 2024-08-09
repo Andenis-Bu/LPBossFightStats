@@ -1,5 +1,4 @@
-[c/ff9eb4:LP's Boss Fight Stats]
-LP's Boss Fight Stats is a mod for Terraria that enhances the boss fight experience by tracking and displaying various statistics after the battle. Whether you're playing solo or with friends, this mod provides detailed summaries of performance, helping you to improve your strategies and enjoy a more competitive and fun gameplay experience.
+[c/f5ffc7:LP's Boss Fight Stats] is a mod for Terraria that enhances the boss fight experience by tracking and displaying various statistics after the battle. Whether you're playing solo or with friends, this mod provides detailed summaries of performance, helping you to improve your strategies and enjoy a more competitive and fun gameplay experience.
 
 [c/ff9eb4:What's New in 1.2]
 • [c/f5ffc7:Client-Side Configurations:] Gain more control over your gameplay data with new settings that allow you to toggle individual statistics on and off. Customize the color of your stats for a personalized interface.
