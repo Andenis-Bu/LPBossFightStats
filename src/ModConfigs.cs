@@ -50,7 +50,11 @@ namespace LPBossFightStats.src
         
         [DefaultValue(typeof(Color), "85, 209, 157, 255"), ColorNoAlpha]
         public Color DamagePercentTextColor { get; set; }
-    
+
+        // Compact Mode
+        [DefaultValue(false)]
+        public bool CompactMode { get; set; }
+
         public static ModConfigs Instance => ModContent.GetInstance<ModConfigs>();
     }
 }

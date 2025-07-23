@@ -66,5 +66,10 @@ Configs: {
 			Label: Show Kill Count
 			Tooltip: ""
 		}
+
+		CompactMode: {
+			Label: Compact Mode
+			Tooltip: ""
+		}
 	}
 }
