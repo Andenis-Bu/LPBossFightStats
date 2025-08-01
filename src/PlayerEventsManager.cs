@@ -4,116 +4,115 @@ using Terraria.DataStructures;
 using Terraria.ID;
 using Terraria.ModLoader;
 
-namespace LPBossFightStats.src
+namespace LPBossFightStats.src;
+
+public class PlayerEventsManager : ModPlayer
 {
-    public class PlayerEventsManager : ModPlayer
+    // Enum for defining the secondary packet types
+    public enum PacketTypeL2 : byte
     {
-        // Enum for defining the secondary packet types
-        public enum PacketTypeL2 : byte
+        DeathReport,
+        DamageTaken,
+        DamageDealt
+    }
+
+    #region // Send BossEventsManager packets
+
+    // Sends death report information to server
+    private void SendDamageTaken()
+    {
+        try
         {
-            DeathReport,
-            DamageTaken,
-            DamageDealt
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
+            packet.Write((byte)PacketTypeL2.DeathReport);
+            packet.Send();
         }
-
-        #region // Send BossEventsManager packets
-
-        // Sends death report information to server
-        private void SendDamageTaken()
+        catch (Exception ex)
         {
-            try
-            {
-                ModPacket packet = Mod.GetPacket();
-                packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
-                packet.Write((byte)PacketTypeL2.DeathReport);
-                packet.Send();
-            }
-            catch (Exception ex)
-            {
-                Mod.Logger.Error("Error sending death report packet: " + ex.Message);
-            }
+            Mod.Logger.Error("Error sending death report packet: " + ex.Message);
         }
+    }
 
-        // Sends damage taken information to server
-        private void SendDamageTaken(int damageTaken)
+    // Sends damage taken information to server
+    private void SendDamageTaken(int damageTaken)
+    {
+        try
         {
-            try
-            {
-                ModPacket packet = Mod.GetPacket();
-                packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
-                packet.Write((byte)PacketTypeL2.DamageTaken);
-                packet.Write(damageTaken);
-                packet.Send();
-            }
-            catch (Exception ex)
-            {
-                Mod.Logger.Error("Error sending damage taken packet: " + ex.Message);
-            }
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
+            packet.Write((byte)PacketTypeL2.DamageTaken);
+            packet.Write(damageTaken);
+            packet.Send();
         }
-
-        // Sends damage dealt information to server
-        private void SendDamageDealt(int damageDealt)
+        catch (Exception ex)
         {
-            try
-            {
-                ModPacket packet = Mod.GetPacket();
-                packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
-                packet.Write((byte)PacketTypeL2.DamageDealt);
-                packet.Write(damageDealt);
-                packet.Send();
-            }
-            catch (Exception ex)
-            {
-                Mod.Logger.Error("Error sending damage dealt packet: " + ex.Message);
-            }
+            Mod.Logger.Error("Error sending damage taken packet: " + ex.Message);
         }
-        #endregion
+    }
 
-        public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
+    // Sends damage dealt information to server
+    private void SendDamageDealt(int damageDealt)
+    {
+        try
         {
-            if (!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
-                return;
-
-            if (Main.netMode == NetmodeID.MultiplayerClient)
-            {
-                SendDamageTaken();
-            }
-            else if (Main.netMode == NetmodeID.SinglePlayer)
-            {
-                BossFightManager.AddDeathReport(Main.myPlayer);
-            }
+            ModPacket packet = Mod.GetPacket();
+            packet.Write((byte)PacketManager.PacketTypeL1.PlayerEventsManager);
+            packet.Write((byte)PacketTypeL2.DamageDealt);
+            packet.Write(damageDealt);
+            packet.Send();
         }
-
-        // Triggered when a Player takes damage
-        public override void OnHurt(Player.HurtInfo info)
+        catch (Exception ex)
         {
-            if(!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
-                return;
-
-            if (Main.netMode == NetmodeID.MultiplayerClient)
-            {
-                SendDamageTaken(info.Damage);
-            }
-            else if (Main.netMode == NetmodeID.SinglePlayer)
-            {
-                BossFightManager.AddDamageTaken(Main.myPlayer, info.Damage);
-            }
+            Mod.Logger.Error("Error sending damage dealt packet: " + ex.Message);
         }
+    }
+    #endregion
 
-        // Triggered when a Player deals damage
-        public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone)
+    public override void Kill(double damage, int hitDirection, bool pvp, PlayerDeathReason damageSource)
+    {
+        if (!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
+            return;
+
+        if (Main.netMode == NetmodeID.MultiplayerClient)
         {
-            if (!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
-                return;
+            SendDamageTaken();
+        }
+        else if (Main.netMode == NetmodeID.SinglePlayer)
+        {
+            BossFightManager.AddDeathReport(Main.myPlayer);
+        }
+    }
 
-            if (Main.netMode == NetmodeID.MultiplayerClient)
-            {
-                SendDamageDealt(damageDone);
-            }
-            else if (Main.netMode == NetmodeID.SinglePlayer)
-            {
-                BossFightManager.AddDamageDealt(Main.myPlayer, damageDone);
-            }
+    // Triggered when a Player takes damage
+    public override void OnHurt(Player.HurtInfo info)
+    {
+        if(!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
+            return;
+
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+        {
+            SendDamageTaken(info.Damage);
+        }
+        else if (Main.netMode == NetmodeID.SinglePlayer)
+        {
+            BossFightManager.AddDamageTaken(Main.myPlayer, info.Damage);
+        }
+    }
+
+    // Triggered when a Player deals damage
+    public override void OnHitNPC(NPC target, NPC.HitInfo hit, int damageDone)
+    {
+        if (!BossFightManager.IsBossFightActive || Player.whoAmI != Main.myPlayer)
+            return;
+
+        if (Main.netMode == NetmodeID.MultiplayerClient)
+        {
+            SendDamageDealt(damageDone);
+        }
+        else if (Main.netMode == NetmodeID.SinglePlayer)
+        {
+            BossFightManager.AddDamageDealt(Main.myPlayer, damageDone);
         }
     }
 }
