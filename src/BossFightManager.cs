@@ -25,7 +25,7 @@ public class BossFightManager : ModSystem
     private static bool isBossFightActive = false;
 
     // Property to get/set boss fight active state
-    public static bool IsBossFightActive 
+    public static bool IsBossFightActive
     {
         get
         {
@@ -37,26 +37,33 @@ public class BossFightManager : ModSystem
             {
                 isBossFightActive = value;
 
-                if (Main.netMode == NetmodeID.MultiplayerClient)
-                    return; // Exit if client
-
-                if (value)
+                // Server-specific logic
+                if (Main.netMode == NetmodeID.Server)
                 {
-                    stopwatch.Restart();
-                    ResetBossFight();
-                }
-                else
-                {
-                    stopwatch.Stop();
-                    BossFightStats.TotalFightDuration = Stopwatch;
-
-                    if (Main.netMode == NetmodeID.Server)
+                    ModContent.GetInstance<BossFightManager>().SendBossFightActive(isBossFightActive);
+                    if (value)
                     {
-                        ModContent.GetInstance<BossFightManager>().SendBossFightActive();
+                        stopwatch.Restart();
+                        ResetBossFight();
+                    }
+                    else
+                    {
+                        stopwatch.Stop();
+                        BossFightStats.TotalFightDuration = Stopwatch;
                         ModContent.GetInstance<BossFightManager>().SendBossFightStats();
                     }
-                    else if(Main.netMode == NetmodeID.SinglePlayer)
+                }
+                else if (Main.netMode == NetmodeID.SinglePlayer)
+                {
+                    if (value)
                     {
+                        stopwatch.Restart();
+                        ResetBossFight();
+                    }
+                    else
+                    {
+                        stopwatch.Stop();
+                        BossFightStats.TotalFightDuration = Stopwatch;
                         GetPlayerStats();
                         DisplayBossFightStats();
                     }
@@ -112,14 +119,14 @@ public class BossFightManager : ModSystem
     }
 
     // Updates the boss fight active state on clients
-    private void SendBossFightActive()
+    private void SendBossFightActive(bool isBossFightActive)
     {
         try
         {
             ModPacket packet = Mod.GetPacket();
             packet.Write((byte)PacketManager.PacketTypeL1.BossFightManager);
             packet.Write((byte)PacketTypeL2.BossFightActive);
-            packet.Write(IsBossFightActive);
+            packet.Write(isBossFightActive);
             packet.Send();
         }
         catch (Exception ex)
